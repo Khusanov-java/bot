@@ -7,6 +7,5 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     public static TgUser getOrCreateUser(Long chatId) {
-
     }
 }

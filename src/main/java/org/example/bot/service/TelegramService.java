@@ -48,13 +48,12 @@ public class TelegramService {
                     if (tgUser.getState() == State.CATEGORY) {
                         Category category = categoryRepository.findByTitle(text);
                         List<Video> videos = videoRepository.findByCategory_Id(category.getId());
-                        for (Video video : videos) {
                             SendMessage sendMessage = new SendMessage(
                                     id,
-                                    video.getTitle()
+                                    category.getTitle()
                             );
+                            sendMessage.replyMarkup(createVideosButton(videos));
                             telegramBot.execute(sendMessage);
-                        }
                     }
                 }
             }
@@ -62,6 +61,16 @@ public class TelegramService {
             e.printStackTrace();
         }
 
+    }
+
+    private Keyboard createVideosButton(List<Video> videos) {
+        ReplyKeyboardMarkup replyKeyboardMarkup=new ReplyKeyboardMarkup("");
+        for (Video video : videos) {
+            replyKeyboardMarkup.addRow(
+                    new KeyboardButton(video.getTitle())
+            );
+        }
+        return replyKeyboardMarkup;
     }
 
     private Keyboard createCategoryButton() {

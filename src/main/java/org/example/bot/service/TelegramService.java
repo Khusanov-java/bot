@@ -1,13 +1,11 @@
 package org.example.bot.service;
 
 import com.pengrad.telegrambot.TelegramBot;
-import com.pengrad.telegrambot.model.PhotoSize;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.request.Keyboard;
 import com.pengrad.telegrambot.model.request.KeyboardButton;
 import com.pengrad.telegrambot.model.request.ReplyKeyboardMarkup;
 import com.pengrad.telegrambot.request.SendMessage;
-import com.pengrad.telegrambot.request.SendPhoto;
 import lombok.RequiredArgsConstructor;
 import org.example.bot.entity.Category;
 import org.example.bot.entity.State;
@@ -37,7 +35,6 @@ public class TelegramService {
                 Long id = update.message().chat().id();
                 TgUser tgUser = tgUserRepository.findById(id).orElse(TgUser.builder().id(id).build());
                 tgUserRepository.save(tgUser);
-
                 if (text != null && text.equals("/start")) {
                     SendMessage sendMessage = new SendMessage(
                             id,
@@ -47,12 +44,16 @@ public class TelegramService {
                     telegramBot.execute(sendMessage);
                     tgUser.setState(State.CATEGORY);
                     tgUserRepository.save(tgUser);
-
+                } else if (text != null && text.equals("Ortga")) {
+                    SendMessage sendMessage = new SendMessage(id, "choose category");
+                    sendMessage.replyMarkup(createCategoryButton());
+                    telegramBot.execute(sendMessage);
+                    tgUser.setState(State.CATEGORY);
+                    tgUserRepository.save(tgUser);
                 } else {
                     if (tgUser.getState() == State.CATEGORY) {
                         Category category = categoryRepository.findByTitle(text);
                         List<Video> videos = videoRepository.findByCategory_Id(category.getId());
-
                         SendMessage sendMessage = new SendMessage(
                                 id,
                                 category.getTitle()
@@ -61,29 +62,13 @@ public class TelegramService {
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.TOPIC);
                         tgUserRepository.save(tgUser);
-                    } else if (tgUser.getState() == State.TOPIC) {
-                        telegramBot.execute(new SendMessage(id, "TOPIC holatidasiz. Kanaldagi rasmni kuting..."));
                     }
                 }
             }
-            else if (update.channelPost() != null && update.channelPost().photo() != null) {
-                List<TgUser> topicUsers = tgUserRepository.findAll()
-                        .stream()
-                        .filter(u -> State.TOPIC.equals(u.getState()))
-                        .toList();
-
-                PhotoSize[] photos = update.channelPost().photo();
-                PhotoSize largest = photos[photos.length - 1];
-
-                for (TgUser user : topicUsers) {
-                    SendPhoto sendPhoto = new SendPhoto(user.getId(), largest.fileId());
-                    telegramBot.execute(sendPhoto);
-                }
-            }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
     private Keyboard createVideosButton(List<Video> videos) {
@@ -93,6 +78,7 @@ public class TelegramService {
                     new KeyboardButton(video.getTitle())
             );
         }
+        replyKeyboardMarkup.addRow(new KeyboardButton("Ortga"));
         return replyKeyboardMarkup;
     }
 

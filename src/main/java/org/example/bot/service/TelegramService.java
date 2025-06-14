@@ -8,6 +8,7 @@ import com.pengrad.telegrambot.model.request.ReplyKeyboardMarkup;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
 import org.example.bot.entity.Category;
+import org.example.bot.entity.State;
 import org.example.bot.entity.TgUser;
 import org.example.bot.repo.CategoryRepository;
 import org.example.bot.repo.TgUserRepository;
@@ -40,6 +41,7 @@ public class TelegramService {
                     );
                     sendMessage.replyMarkup(createCategoryButton());
                     telegramBot.execute(sendMessage);
+                    tgUser.setState(State.CATEGORY);
                 }
             }
         } catch (Exception e) {

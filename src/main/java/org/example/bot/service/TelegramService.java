@@ -30,7 +30,7 @@ public class TelegramService {
             if (update.message() != null) {
                 String text = update.message().text();
                 Long id = update.message().chat().id();
-                TgUser tgUser = tgUserRepository.findById(id).orElse(TgUser.builder().id(id).build());
+                TgUser tgUser = getTgUser(id);
                 if (text != null && text.equals("/start")) {
                     SendMessage sendMessage = new SendMessage(
                             id,
@@ -39,14 +39,13 @@ public class TelegramService {
                     sendMessage.replyMarkup(createCategoryButton());
                     telegramBot.execute(sendMessage);
                     tgUser.setState(State.CATEGORY);
-                } else if (text != null) {
-                    if (tgUser.getState() == State.CATEGORY) {
-                        SendMessage sendMessage = new SendMessage(
-                                id,
-                                text
-                        );
-                        telegramBot.execute(sendMessage);
-                    }
+                    tgUserRepository.save(tgUser);
+                } else if (text != null && tgUser.getState().equals(State.CATEGORY)) {
+                    SendMessage sendMessage = new SendMessage(
+                            id,
+                            tgUser.toString()
+                    );
+                    telegramBot.execute(sendMessage);
                 }
             }
         } catch (
@@ -54,6 +53,11 @@ public class TelegramService {
             e.printStackTrace();
         }
 
+    }
+
+    private TgUser getTgUser(Long id) {
+        TgUser tgUser = tgUserRepository.findById(id).orElse(TgUser.builder().id(id).build());
+        return tgUser;
     }
 
     private Keyboard createCategoryButton() {

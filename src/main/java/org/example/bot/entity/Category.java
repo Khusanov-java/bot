@@ -19,6 +19,4 @@ public class Category {
     @Id
     private Integer id;
     private String title;
-    @OneToMany
-    private List<Video> videos;
 }

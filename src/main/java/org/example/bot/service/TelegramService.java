@@ -10,8 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.example.bot.entity.Category;
 import org.example.bot.entity.State;
 import org.example.bot.entity.TgUser;
+import org.example.bot.entity.Video;
 import org.example.bot.repo.CategoryRepository;
 import org.example.bot.repo.TgUserRepository;
+import org.example.bot.repo.VideoRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ public class TelegramService {
     private final TelegramBot telegramBot;
     private final TgUserRepository tgUserRepository;
     private final CategoryRepository categoryRepository;
+    private final VideoRepository videoRepository;
 
     public void handle(Update update) {
         try {
@@ -31,6 +34,7 @@ public class TelegramService {
                 String text = update.message().text();
                 Long id = update.message().chat().id();
                 TgUser tgUser = tgUserRepository.findById(id).orElse(TgUser.builder().id(id).build());
+                tgUserRepository.save(tgUser);
                 if (text != null && text.equals("/start")) {
                     SendMessage sendMessage = new SendMessage(
                             id,
@@ -39,18 +43,22 @@ public class TelegramService {
                     sendMessage.replyMarkup(createCategoryButton());
                     telegramBot.execute(sendMessage);
                     tgUser.setState(State.CATEGORY);
-                } else if (text != null) {
+                    tgUserRepository.save(tgUser);
+                } else {
                     if (tgUser.getState() == State.CATEGORY) {
-                        SendMessage sendMessage = new SendMessage(
-                                id,
-                                text
-                        );
-                        telegramBot.execute(sendMessage);
+                        Category category = categoryRepository.findByTitle(text);
+                        List<Video> videos = videoRepository.findByCategory_Id(category.getId());
+                        for (Video video : videos) {
+                            SendMessage sendMessage = new SendMessage(
+                                    id,
+                                    video.getTitle()
+                            );
+                            telegramBot.execute(sendMessage);
+                        }
                     }
                 }
             }
-        } catch (
-                Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

@@ -44,16 +44,24 @@ public class TelegramService {
                     telegramBot.execute(sendMessage);
                     tgUser.setState(State.CATEGORY);
                     tgUserRepository.save(tgUser);
+                } else if (text != null && text.equals("Ortga")) {
+                    SendMessage sendMessage = new SendMessage(id, "choose category");
+                    sendMessage.replyMarkup(createCategoryButton());
+                    telegramBot.execute(sendMessage);
+                    tgUser.setState(State.CATEGORY);
+                    tgUserRepository.save(tgUser);
                 } else {
                     if (tgUser.getState() == State.CATEGORY) {
                         Category category = categoryRepository.findByTitle(text);
                         List<Video> videos = videoRepository.findByCategory_Id(category.getId());
-                            SendMessage sendMessage = new SendMessage(
-                                    id,
-                                    category.getTitle()
-                            );
-                            sendMessage.replyMarkup(createVideosButton(videos));
-                            telegramBot.execute(sendMessage);
+                        SendMessage sendMessage = new SendMessage(
+                                id,
+                                category.getTitle()
+                        );
+                        sendMessage.replyMarkup(createVideosButton(videos));
+                        telegramBot.execute(sendMessage);
+                        tgUser.setState(State.TOPIC);
+                        tgUserRepository.save(tgUser);
                     }
                 }
             }
@@ -64,12 +72,13 @@ public class TelegramService {
     }
 
     private Keyboard createVideosButton(List<Video> videos) {
-        ReplyKeyboardMarkup replyKeyboardMarkup=new ReplyKeyboardMarkup("");
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup("");
         for (Video video : videos) {
             replyKeyboardMarkup.addRow(
                     new KeyboardButton(video.getTitle())
             );
         }
+        replyKeyboardMarkup.addRow(new KeyboardButton("Ortga"));
         return replyKeyboardMarkup;
     }
 

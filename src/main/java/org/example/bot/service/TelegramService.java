@@ -25,16 +25,13 @@ public class TelegramService {
     private final TgUserRepository tgUserRepository;
     private final CategoryRepository categoryRepository;
 
-
-
-
     public void handle(Update update) {
         try {
-            if (update.message() != null && update.message().text() != null) {
-                Long id = update.message().chat().id();
+            if (update.message() != null) {
                 String text = update.message().text();
+                Long id = update.message().chat().id();
                 TgUser tgUser = tgUserRepository.findById(id).orElse(TgUser.builder().id(id).build());
-                if (text.equals("/start")) {
+                if (text != null && text.equals("/start")) {
                     SendMessage sendMessage = new SendMessage(
                             id,
                             "Salom bu test bot ishlasa ishladi"
@@ -42,9 +39,18 @@ public class TelegramService {
                     sendMessage.replyMarkup(createCategoryButton());
                     telegramBot.execute(sendMessage);
                     tgUser.setState(State.CATEGORY);
+                } else if (text != null) {
+                    if (tgUser.getState() == State.CATEGORY) {
+                        SendMessage sendMessage = new SendMessage(
+                                id,
+                                text
+                        );
+                        telegramBot.execute(sendMessage);
+                    }
                 }
             }
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             e.printStackTrace();
         }
 
@@ -68,7 +74,4 @@ public class TelegramService {
         replyKeyboardMarkup.resizeKeyboard(true).oneTimeKeyboard(false);
         return replyKeyboardMarkup;
     }
-
-
-
 }

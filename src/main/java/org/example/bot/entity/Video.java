@@ -13,9 +13,11 @@ import lombok.NoArgsConstructor;
 @Builder
 public class Video {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private String title;
-    private Integer fileId;
+    private Long channelId;
+    private Integer messageId;
     @ManyToOne
     private Category category;
 }

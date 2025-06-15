@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class TgUser {
     @Id
     private Long id;
+
     @Enumerated(EnumType.STRING)
     private State state;
 }

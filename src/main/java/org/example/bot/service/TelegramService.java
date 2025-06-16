@@ -32,13 +32,15 @@ public class TelegramService {
     public void handle(Update update) {
         try {
             if (update.message() != null && update.message().forwardFromChat() != null) {
-                Long channelId = update.message().forwardFromChat().id();
+                Long channelId = Long.valueOf("-1002805667393");
+                if(!channelId.equals(update.message().forwardFromChat().id())) {
+                    return;
+                }
+                String caption = update.message().caption();
+                String title = caption.substring(2);
                 Integer messageId = update.message().forwardFromMessageId();
-                telegramBot.execute(new SendMessage(update.message().chat().id(),
-                        "Received forwarded video.\nChannel ID: " + channelId + "\nMessage ID: " + messageId));
-
                 Video video = new Video();
-                video.setTitle("Some Title");
+                video.setTitle(title);
                 video.setChannelId(channelId);
                 video.setMessageId(messageId);
                 Category category = categoryRepository.findByTitle("category1");

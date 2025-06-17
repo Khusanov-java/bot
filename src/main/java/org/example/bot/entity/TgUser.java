@@ -17,4 +17,9 @@ public class TgUser {
 
     @Enumerated(EnumType.STRING)
     private State state;
+
+    private String username;
+
+
+    private String tempCategoryTitle;
 }

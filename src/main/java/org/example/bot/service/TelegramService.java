@@ -16,7 +16,6 @@ import org.example.bot.entity.Video;
 import org.example.bot.repo.CategoryRepository;
 import org.example.bot.repo.TgUserRepository;
 import org.example.bot.repo.VideoRepository;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -45,6 +44,7 @@ public class TelegramService {
 
                 if (text != null && text.equals("/start")) {
                     SendMessage sendMessage = new SendMessage(id, "Salom bu test bot ishlasa ishladi, ismingizni kiriting");
+                    sendMessage.replyMarkup(new ReplyKeyboardRemove());
                     telegramBot.execute(sendMessage);
                     if (tgUser.getState() != State.CHECK_NAME) {
                         tgUser.setState(State.CHECK_NAME);
@@ -59,6 +59,7 @@ public class TelegramService {
                                 id,
                                 "Asosiy menyu"
                         );
+                        tgUser.setUsername("Ibrohim");
                         sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.CATEGORY);
@@ -77,19 +78,26 @@ public class TelegramService {
                     }
                 }
 
+                if (text != null && text.equals("Ortga") || text != null && text.equals("Asosiy menyu")) {
+                    if (tgUser.getUsername().equals("Ibrohim")) {
+                        SendMessage sendMessage = new SendMessage(id, "Choose category:");
+                        sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
+                        telegramBot.execute(sendMessage);
 
-                if (text != null && text.equals("Ortga") && text != null && text.equals("Asosiy menyu")) {
-                    SendMessage sendMessage = new SendMessage(id, "Choose category:");
-                    sendMessage.replyMarkup(createCategoryButton());
-                    telegramBot.execute(sendMessage);
-
-                    if (tgUser.getState() != State.CATEGORY) {
+                        if (tgUser.getState() != State.CATEGORY) {
+                            tgUser.setState(State.CATEGORY);
+                            tgUserRepository.save(tgUser);
+                        }
+                        return;
+                    } else {
+                        SendMessage sendMessage = new SendMessage(id, "Choose category:");
+                        sendMessage.replyMarkup(createCategoryButton());
+                        telegramBot.execute(sendMessage);
                         tgUser.setState(State.CATEGORY);
                         tgUserRepository.save(tgUser);
+                        return;
                     }
-                    return;
                 }
-
 
                 if (tgUser.getState() == State.CATEGORY) {
                     if (text != null && text.equals("Admin panel")) {
@@ -126,12 +134,14 @@ public class TelegramService {
                     }
 
                     ForwardMessage forward = new ForwardMessage(id, video.getChannelId(), video.getMessageId());
+                    forward.protectContent(true);
                     telegramBot.execute(forward);
                 }
 
                 if (tgUser.getState() == State.ADMIN_PANEL) {
                     if (text != null && text.equals("Kitob qo'shish")) {
                         SendMessage sendMessage = new SendMessage(id, "Kitob nomini yozing");
+                        sendMessage.replyMarkup(new ReplyKeyboardRemove()); // <-- remove added
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.ADD_CATEGORY);
                         tgUserRepository.save(tgUser);
@@ -157,25 +167,24 @@ public class TelegramService {
                             id,
                             "Kitob saqlandi, iltimos asosiy menyu tugmasini bosing"
                     );
-                    sendMessage.replyMarkup(
-                            getAsosiyMenyu()
-                    );
+                    sendMessage.replyMarkup(getAsosiyMenyu());
                     telegramBot.execute(sendMessage);
                     return;
                 }
 
                 if (tgUser.getState() == State.CHOOSE_CATEGORY) {
+                    tgUser.setTempCategoryTitle(text);
+                    tgUserRepository.save(tgUser);
                     SendMessage sendMessage = new SendMessage(
                             id,
                             "Video yuboring"
                     );
-                    telegramBot.execute(sendMessage);
                     sendMessage.replyMarkup(new ReplyKeyboardRemove());
+                    telegramBot.execute(sendMessage);
                     tgUser.setState(State.ADD_VIDEO);
                     tgUserRepository.save(tgUser);
                     return;
                 }
-
 
                 if (tgUser.getState() == State.ADD_VIDEO) {
                     if (update.message() != null && update.message().forwardFromChat() != null) {
@@ -192,7 +201,7 @@ public class TelegramService {
                         video.setId(Integer.parseInt(videoid));
                         video.setChannelId(channelId);
                         video.setMessageId(messageId);
-                        Category category = categoryRepository.findByTitle("Nimadir");
+                        Category category = categoryRepository.findByTitle(tgUser.getTempCategoryTitle());
                         video.setCategory(category);
                         videoRepository.save(video);
                         SendMessage sendMessage = new SendMessage(
@@ -209,6 +218,7 @@ public class TelegramService {
         }
     }
 
+
     private Keyboard createCategoryWithAdminPanelButton() {
         List<Category> categories = categoryRepository.findAll();
         List<KeyboardButton[]> rows = new ArrayList<>();
@@ -216,7 +226,7 @@ public class TelegramService {
 
         for (int i = 0; i < categories.size(); i++) {
             currentRow.add(new KeyboardButton(categories.get(i).getTitle()));
-            if ((i + 1) % 2 == 0 i == categories.size() - 1){
+            if ((i + 1) % 2 == 0 || i == categories.size() - 1) {
                 rows.add(currentRow.toArray(new KeyboardButton[0]));
                 currentRow.clear();
             }

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -37,20 +38,43 @@ public class TelegramService {
                 String text = update.message().text();
                 Long id = update.message().chat().id();
                 TgUser tgUser = tgUserRepository.findById(id).orElseGet(() -> {
-                    TgUser newUser = TgUser.builder().id(id).state(State.CATEGORY).build();
+                    TgUser newUser = TgUser.builder().id(id).state(State.CHECK_NAME).build();
                     tgUserRepository.save(newUser);
                     return newUser;
                 });
 
                 if (text != null && text.equals("/start")) {
-                    SendMessage sendMessage = new SendMessage(id, "Salom bu test bot ishlasa ishladi");
-                    sendMessage.replyMarkup(createCategoryButton());
+                    SendMessage sendMessage = new SendMessage(id, "Salom bu test bot ishlasa ishladi, ismingizni kiriting");
                     telegramBot.execute(sendMessage);
-                    if (tgUser.getState() != State.CATEGORY) {
-                        tgUser.setState(State.CATEGORY);
+                    if (tgUser.getState() != State.CHECK_NAME) {
+                        tgUser.setState(State.CHECK_NAME);
                         tgUserRepository.save(tgUser);
                     }
                     return;
+                }
+
+                if (tgUser.getState() == State.CHECK_NAME) {
+                    if (Objects.equals(text, "Ibrohim")) {
+                        SendMessage sendMessage = new SendMessage(
+                                id,
+                                "Asosiy menyu"
+                        );
+                        sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
+                        telegramBot.execute(sendMessage);
+                        tgUser.setState(State.CATEGORY);
+                        tgUserRepository.save(tgUser);
+                        return;
+                    } else {
+                        SendMessage sendMessage = new SendMessage(
+                                id,
+                                "Asosiy menyu"
+                        );
+                        sendMessage.replyMarkup(createCategoryButton());
+                        telegramBot.execute(sendMessage);
+                        tgUser.setState(State.CATEGORY);
+                        tgUserRepository.save(tgUser);
+                        return;
+                    }
                 }
 
                 if (text != null && text.equals("Ortga") || text != null && text.equals("Asosiy menyu")) {
@@ -77,7 +101,7 @@ public class TelegramService {
                         tgUser.setState(State.ADMIN_PANEL);
                         tgUserRepository.save(tgUser);
                         return;
-                    }else {
+                    } else {
                         Category category = categoryRepository.findByTitle(text);
                         if (category == null) {
                             telegramBot.execute(new SendMessage(id, "Kategoriya topilmadi"));
@@ -100,7 +124,7 @@ public class TelegramService {
                         return;
                     }
 
-                    ForwardMessage forward = new ForwardMessage(id,video.getChannelId(), video.getMessageId());
+                    ForwardMessage forward = new ForwardMessage(id, video.getChannelId(), video.getMessageId());
                     telegramBot.execute(forward);
                 }
 
@@ -111,7 +135,7 @@ public class TelegramService {
                         tgUser.setState(State.ADD_CATEGORY);
                         tgUserRepository.save(tgUser);
                         return;
-                    }else {
+                    } else {
                         SendMessage sendMessage = new SendMessage(
                                 id,
                                 "Kategoriya tanlang"
@@ -125,10 +149,10 @@ public class TelegramService {
                 }
 
                 if (tgUser.getState() == State.ADD_CATEGORY) {
-                    Category category=new Category();
+                    Category category = new Category();
                     category.setTitle(text);
                     categoryRepository.save(category);
-                    SendMessage sendMessage= new SendMessage(
+                    SendMessage sendMessage = new SendMessage(
                             id,
                             "Kitob saqlandi, iltimos asosiy menyu tugmasini bosing"
                     );
@@ -186,8 +210,30 @@ public class TelegramService {
         }
     }
 
+    private Keyboard createCategoryWithAdminPanelButton() {
+        List<Category> categories = categoryRepository.findAll();
+        List<KeyboardButton[]> rows = new ArrayList<>();
+        List<KeyboardButton> currentRow = new ArrayList<>();
 
-    private  ReplyKeyboardMarkup getAsosiyMenyu() {
+        for (int i = 0; i < categories.size(); i++) {
+            currentRow.add(new KeyboardButton(categories.get(i).getTitle()));
+            if ((i + 1) % 2 == 0 || i == categories.size() - 1) {
+                rows.add(currentRow.toArray(new KeyboardButton[0]));
+                currentRow.clear();
+            }
+        }
+
+        KeyboardButton adminButton = new KeyboardButton("Admin panel");
+        rows.add(new KeyboardButton[]{adminButton});
+
+        ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup(rows.toArray(new KeyboardButton[0][]));
+        replyKeyboardMarkup.resizeKeyboard(true).oneTimeKeyboard(false);
+        return replyKeyboardMarkup;
+
+    }
+
+
+    private ReplyKeyboardMarkup getAsosiyMenyu() {
         return new ReplyKeyboardMarkup(
                 new KeyboardButton("Asosiy menyu")
         );
@@ -224,8 +270,6 @@ public class TelegramService {
             }
         }
 
-        KeyboardButton adminButton = new KeyboardButton("Admin panel");
-        rows.add(new KeyboardButton[]{adminButton});
 
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup(rows.toArray(new KeyboardButton[0][]));
         replyKeyboardMarkup.resizeKeyboard(true).oneTimeKeyboard(false);

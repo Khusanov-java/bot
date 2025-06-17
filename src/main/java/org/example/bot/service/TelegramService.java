@@ -77,7 +77,8 @@ public class TelegramService {
                     }
                 }
 
-                if (text != null && text.equals("Ortga") || text != null && text.equals("Asosiy menyu")) {
+
+                if (text != null && text.equals("Ortga") && text != null && text.equals("Asosiy menyu")) {
                     SendMessage sendMessage = new SendMessage(id, "Choose category:");
                     sendMessage.replyMarkup(createCategoryButton());
                     telegramBot.execute(sendMessage);
@@ -178,7 +179,7 @@ public class TelegramService {
 
                 if (tgUser.getState() == State.ADD_VIDEO) {
                     if (update.message() != null && update.message().forwardFromChat() != null) {
-                        Long channelId = Long.valueOf("-1002751073363");
+                        Long channelId = Long.valueOf("-1002805667393");
                         if (!channelId.equals(update.message().forwardFromChat().id())) {
                             return;
                         }
@@ -215,7 +216,7 @@ public class TelegramService {
 
         for (int i = 0; i < categories.size(); i++) {
             currentRow.add(new KeyboardButton(categories.get(i).getTitle()));
-            if ((i + 1) % 2 == 0 || i == categories.size() - 1) {
+            if ((i + 1) % 2 == 0 i == categories.size() - 1){
                 rows.add(currentRow.toArray(new KeyboardButton[0]));
                 currentRow.clear();
             }

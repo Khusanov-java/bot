@@ -154,7 +154,9 @@ public class TelegramService {
 
                 if (tgUser.getState() == State.ADD_VIDEO) {
                     if (update.message() != null && update.message().forwardFromChat() != null) {
-                        Long channelId = Long.valueOf("-1002751073363");
+                        // Long channelId = Long.valueOf("-1002751073363");
+                        Long channelId = update.message().forwardFromChat().id();
+                        System.out.println(channelId);
                         if (!channelId.equals(update.message().forwardFromChat().id())) {
                             return;
                         }

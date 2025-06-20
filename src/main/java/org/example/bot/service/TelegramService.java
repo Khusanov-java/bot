@@ -30,6 +30,7 @@ public class TelegramService {
     private final TgUserRepository tgUserRepository;
     private final CategoryRepository categoryRepository;
     private final VideoRepository videoRepository;
+    private String password="Ibrohim";
 
     public void handle(Update update) {
         try {
@@ -54,12 +55,12 @@ public class TelegramService {
                 }
 
                 if (tgUser.getState() == State.CHECK_NAME) {
-                    if (Objects.equals(text, "Ibrohim")) {
+                    if (Objects.equals(text, password)) {
                         SendMessage sendMessage = new SendMessage(
                                 id,
                                 "Asosiy menyu"
                         );
-                        tgUser.setUsername("Ibrohim");
+                        tgUser.setUsername(password);
                         sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.CATEGORY);
@@ -70,6 +71,7 @@ public class TelegramService {
                                 id,
                                 "Asosiy menyu"
                         );
+                        tgUser.setUsername(text);
                         sendMessage.replyMarkup(createCategoryButton());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.CATEGORY);
@@ -79,7 +81,7 @@ public class TelegramService {
                 }
 
                 if (text != null && text.equals("Ortga") || text != null && text.equals("Asosiy menyu")) {
-                    if (tgUser.getUsername().equals("Ibrohim")) {
+                    if (tgUser.getUsername().equals(password)) {
                         SendMessage sendMessage = new SendMessage(id, "Choose category:");
                         sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
                         telegramBot.execute(sendMessage);
@@ -141,12 +143,12 @@ public class TelegramService {
                 if (tgUser.getState() == State.ADMIN_PANEL) {
                     if (text != null && text.equals("Kitob qo'shish")) {
                         SendMessage sendMessage = new SendMessage(id, "Kitob nomini yozing");
-                        sendMessage.replyMarkup(new ReplyKeyboardRemove()); // <-- remove added
+                        sendMessage.replyMarkup(new ReplyKeyboardRemove());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.ADD_CATEGORY);
                         tgUserRepository.save(tgUser);
                         return;
-                    } else {
+                    } else if (text != null && text.equals("Video qo'shish")) {
                         SendMessage sendMessage = new SendMessage(
                                 id,
                                 "Kategoriya tanlang"
@@ -193,12 +195,13 @@ public class TelegramService {
                             return;
                         }
                         String caption = update.message().caption();
-                        String title = caption.substring(2);
-                        String videoid = caption.substring(0, 1);
+                        int dotIndex = caption.indexOf('.');
+                        String videoId = caption.substring(0, dotIndex);
+                        String title = caption.substring(dotIndex + 1);
                         Integer messageId = update.message().forwardFromMessageId();
                         Video video = new Video();
                         video.setTitle(title);
-                        video.setId(Integer.parseInt(videoid));
+                        video.setId(Integer.parseInt(videoId));
                         video.setChannelId(channelId);
                         video.setMessageId(messageId);
                         Category category = categoryRepository.findByTitle(tgUser.getTempCategoryTitle());
@@ -210,8 +213,10 @@ public class TelegramService {
                         );
                         sendMessage.replyMarkup(getAsosiyMenyu());
                         telegramBot.execute(sendMessage);
+
                     }
                 }
+
             }
         } catch (Exception e) {
             e.printStackTrace();

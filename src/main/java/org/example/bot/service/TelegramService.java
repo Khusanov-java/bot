@@ -218,7 +218,6 @@ public class TelegramService {
         }
     }
 
-
     private Keyboard createCategoryWithAdminPanelButton() {
         List<Category> categories = categoryRepository.findAll();
         List<KeyboardButton[]> rows = new ArrayList<>();
@@ -240,7 +239,6 @@ public class TelegramService {
         return replyKeyboardMarkup;
 
     }
-
 
     private ReplyKeyboardMarkup getAsosiyMenyu() {
         return new ReplyKeyboardMarkup(

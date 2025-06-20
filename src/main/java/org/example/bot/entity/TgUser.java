@@ -20,6 +20,6 @@ public class TgUser {
 
     private String username;
 
-
     private String tempCategoryTitle;
+
 }

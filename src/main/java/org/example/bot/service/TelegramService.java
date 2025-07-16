@@ -27,10 +27,10 @@ import java.util.Objects;
 public class TelegramService {
 
     private final TelegramBot telegramBot;
-    private final TgUserRepository tgUserRepository;
     private final CategoryRepository categoryRepository;
     private final VideoRepository videoRepository;
-    private String password="123456789000";
+    private final TgUserRepository tgUserRepository;
+    private final String password = "MuhammadAmin123";
 
     public void handle(Update update) {
         try {
@@ -44,7 +44,7 @@ public class TelegramService {
                 });
 
                 if (text != null && text.equals("/start")) {
-                    SendMessage sendMessage = new SendMessage(id, "Salom bu test bot ishlasa ishladi, ismingizni kiriting");
+                    SendMessage sendMessage = new SendMessage(id, "Assalomu aleykum. Botga xush kelibsiz\nIltimos ismingizni kiriting\uD83D\uDE0A");
                     sendMessage.replyMarkup(new ReplyKeyboardRemove());
                     telegramBot.execute(sendMessage);
                     if (tgUser.getState() != State.CHECK_NAME) {
@@ -80,9 +80,9 @@ public class TelegramService {
                     }
                 }
 
-                if (text != null && text.equals("Ortga") || text != null && text.equals("Asosiy menyu")) {
+                if (text != null && text.equals("Orqaga") || text != null && text.equals("Asosiy menyu")) {
                     if (tgUser.getUsername().equals(password)) {
-                        SendMessage sendMessage = new SendMessage(id, "Choose category:");
+                        SendMessage sendMessage = new SendMessage(id, "Iltimos tanlang\uD83D\uDC47");
                         sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
                         telegramBot.execute(sendMessage);
 
@@ -92,7 +92,7 @@ public class TelegramService {
                         }
                         return;
                     } else {
-                        SendMessage sendMessage = new SendMessage(id, "Choose category:");
+                        SendMessage sendMessage = new SendMessage(id, "Iltimos tanlang\uD83D\uDC47");
                         sendMessage.replyMarkup(createCategoryButton());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.CATEGORY);
@@ -118,8 +118,8 @@ public class TelegramService {
                             telegramBot.execute(new SendMessage(id, "Kategoriya topilmadi"));
                             return;
                         }
-                        List<Video> videos = videoRepository.findByCategory_Id(category.getId());
-                        SendMessage sendMessage = new SendMessage(id, "Videoni tanlang:");
+                        List<Video> videos = videoRepository.findByCategory_IdOrderByMessageIdAsc(category.getId());
+                        SendMessage sendMessage = new SendMessage(id, "Videoni tanlang\uD83D\uDC47");
                         sendMessage.replyMarkup(createVideosButton(videos));
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.TOPIC);
@@ -195,13 +195,9 @@ public class TelegramService {
                             return;
                         }
                         String caption = update.message().caption();
-                        int dotIndex = caption.indexOf('.');
-                        String videoId = caption.substring(0, dotIndex);
-                        String title = caption.substring(dotIndex + 1);
                         Integer messageId = update.message().forwardFromMessageId();
                         Video video = new Video();
-                        video.setTitle(title);
-                        video.setId(Integer.parseInt(videoId));
+                        video.setTitle(caption);
                         video.setChannelId(channelId);
                         video.setMessageId(messageId);
                         Category category = categoryRepository.findByTitle(tgUser.getTempCategoryTitle());
@@ -213,16 +209,13 @@ public class TelegramService {
                         );
                         sendMessage.replyMarkup(getAsosiyMenyu());
                         telegramBot.execute(sendMessage);
-
                     }
                 }
-
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 
     private Keyboard createCategoryWithAdminPanelButton() {
         List<Category> categories = categoryRepository.findAll();
@@ -246,7 +239,6 @@ public class TelegramService {
 
     }
 
-
     private ReplyKeyboardMarkup getAsosiyMenyu() {
         return new ReplyKeyboardMarkup(
                 new KeyboardButton("Asosiy menyu")
@@ -267,12 +259,13 @@ public class TelegramService {
         for (Video video : videos) {
             replyKeyboardMarkup.addRow(new KeyboardButton(video.getTitle()));
         }
-        replyKeyboardMarkup.addRow(new KeyboardButton("Ortga"));
+        replyKeyboardMarkup.addRow(new KeyboardButton("Orqaga"));
+        replyKeyboardMarkup.resizeKeyboard(true);
         return replyKeyboardMarkup;
     }
 
     private Keyboard createCategoryButton() {
-        List<Category> categories = categoryRepository.findAll();
+        List<Category> categories = categoryRepository.findAllByOrderByIdAsc();
         List<KeyboardButton[]> rows = new ArrayList<>();
         List<KeyboardButton> currentRow = new ArrayList<>();
 
@@ -283,7 +276,6 @@ public class TelegramService {
                 currentRow.clear();
             }
         }
-
 
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup(rows.toArray(new KeyboardButton[0][]));
         replyKeyboardMarkup.resizeKeyboard(true).oneTimeKeyboard(false);

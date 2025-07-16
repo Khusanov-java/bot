@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface VideoRepository extends JpaRepository<Video, Integer> {
-    List<Video> findByCategory_Id(Integer id);
+    List<Video> findByCategory_IdOrderByMessageIdAsc(Integer categoryId);
 
     Video findByTitle(String text);
 }

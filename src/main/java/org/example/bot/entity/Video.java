@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class Video {
     @Id
     @Column(unique = true)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private String title;
     private Long channelId;

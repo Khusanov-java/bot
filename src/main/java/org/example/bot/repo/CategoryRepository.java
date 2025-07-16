@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
     Category findByTitle(String text);
+    List<Category> findAllByOrderByIdAsc();
 }

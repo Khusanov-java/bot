@@ -30,7 +30,7 @@ public class TelegramService {
     private final TgUserRepository tgUserRepository;
     private final CategoryRepository categoryRepository;
     private final VideoRepository videoRepository;
-    private String password="Ibrohim";
+    private String password="123456789000";
 
     public void handle(Update update) {
         try {

@@ -27,10 +27,10 @@ import java.util.Objects;
 public class TelegramService {
 
     private final TelegramBot telegramBot;
-    private final TgUserRepository tgUserRepository;
     private final CategoryRepository categoryRepository;
     private final VideoRepository videoRepository;
-    private final String password="bomagurShorva15";
+    private final TgUserRepository tgUserRepository;
+    private final String password = "MuhammadAmin123";
 
     public void handle(Update update) {
         try {
@@ -195,13 +195,9 @@ public class TelegramService {
                             return;
                         }
                         String caption = update.message().caption();
-                        int dotIndex = caption.indexOf('.');
-                        String videoId = caption.substring(0, dotIndex);
-                        String title = caption.substring(dotIndex + 1);
                         Integer messageId = update.message().forwardFromMessageId();
                         Video video = new Video();
-                        video.setTitle(title);
-                        video.setId(Integer.parseInt(videoId));
+                        video.setTitle(caption);
                         video.setChannelId(channelId);
                         video.setMessageId(messageId);
                         Category category = categoryRepository.findByTitle(tgUser.getTempCategoryTitle());
@@ -213,10 +209,8 @@ public class TelegramService {
                         );
                         sendMessage.replyMarkup(getAsosiyMenyu());
                         telegramBot.execute(sendMessage);
-
                     }
                 }
-
             }
         } catch (Exception e) {
             e.printStackTrace();

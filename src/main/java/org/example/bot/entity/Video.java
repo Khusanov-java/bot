@@ -21,4 +21,6 @@ public class Video {
     private Integer messageId;
     @ManyToOne
     private Category category;
+    private String fileName;
+
 }

@@ -1,6 +1,8 @@
 package org.example.bot.service;
 
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.Contact;
+import com.pengrad.telegrambot.model.Document;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.request.Keyboard;
 import com.pengrad.telegrambot.model.request.KeyboardButton;
@@ -18,9 +20,10 @@ import org.example.bot.repo.TgUserRepository;
 import org.example.bot.repo.VideoRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +33,6 @@ public class TelegramService {
     private final CategoryRepository categoryRepository;
     private final VideoRepository videoRepository;
     private final TgUserRepository tgUserRepository;
-    private final String password = "MuhammadAmin123";
 
     public void handle(Update update) {
         try {
@@ -38,7 +40,7 @@ public class TelegramService {
                 String text = update.message().text();
                 Long id = update.message().chat().id();
                 TgUser tgUser = tgUserRepository.findById(id).orElseGet(() -> {
-                    TgUser newUser = TgUser.builder().id(id).state(State.CHECK_NAME).build();
+                    TgUser newUser = TgUser.builder().id(id).state(State.SEND_CONTACT).createdAt(LocalDateTime.now()).build();
                     tgUserRepository.save(newUser);
                     return newUser;
                 });
@@ -47,20 +49,37 @@ public class TelegramService {
                     SendMessage sendMessage = new SendMessage(id, "Assalomu aleykum. Botga xush kelibsiz\nIltimos ismingizni kiriting\uD83D\uDE0A");
                     sendMessage.replyMarkup(new ReplyKeyboardRemove());
                     telegramBot.execute(sendMessage);
-                    if (tgUser.getState() != State.CHECK_NAME) {
-                        tgUser.setState(State.CHECK_NAME);
+                    if (tgUser.getState() != State.SEND_CONTACT) {
+                        tgUser.setState(State.SEND_CONTACT);
                         tgUserRepository.save(tgUser);
                     }
                     return;
                 }
 
+                if (tgUser.getState().equals(State.SEND_CONTACT)) {
+                    tgUser.setUsername(text);
+                    SendMessage sendMessage = new SendMessage(
+                            id,
+                            "Iltimos kontakt raqamingizni kiriting\uD83D\uDE0A"
+                    );
+                    sendMessage.replyMarkup(new ReplyKeyboardMarkup(
+                            new KeyboardButton("Kontakt yuborish").requestContact(true)
+                    ));
+                    telegramBot.execute(sendMessage);
+                    tgUser.setState(State.CHECK_NAME);
+                    tgUserRepository.save(tgUser);
+                    return;
+                }
+
                 if (tgUser.getState() == State.CHECK_NAME) {
-                    if (Objects.equals(text, password)) {
+                    Contact contact = update.message().contact();
+                    tgUser.setPhoneNumber(contact.phoneNumber());
+                    if (contact.phoneNumber().equals("998974034224")) {
                         SendMessage sendMessage = new SendMessage(
                                 id,
                                 "Asosiy menyu"
                         );
-                        tgUser.setUsername(password);
+                        sendMessage.replyMarkup(new ReplyKeyboardRemove());
                         sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.CATEGORY);
@@ -72,6 +91,7 @@ public class TelegramService {
                                 "Asosiy menyu"
                         );
                         tgUser.setUsername(text);
+                        sendMessage.replyMarkup(new ReplyKeyboardRemove());
                         sendMessage.replyMarkup(createCategoryButton());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.CATEGORY);
@@ -81,7 +101,7 @@ public class TelegramService {
                 }
 
                 if (text != null && text.equals("Orqaga") || text != null && text.equals("Asosiy menyu")) {
-                    if (tgUser.getUsername().equals(password)) {
+                    if (tgUser.getPhoneNumber().equals("998974034224")) {
                         SendMessage sendMessage = new SendMessage(id, "Iltimos tanlang\uD83D\uDC47");
                         sendMessage.replyMarkup(createCategoryWithAdminPanelButton());
                         telegramBot.execute(sendMessage);
@@ -153,10 +173,19 @@ public class TelegramService {
                                 id,
                                 "Kategoriya tanlang"
                         );
+                        sendMessage.replyMarkup(new ReplyKeyboardRemove());
                         sendMessage.replyMarkup(createCategoryButton());
                         telegramBot.execute(sendMessage);
                         tgUser.setState(State.CHOOSE_CATEGORY);
                         tgUserRepository.save(tgUser);
+                        return;
+                    } else if (text != null && text.equals("Userlarni ko'rish")) {
+                        List<TgUser> all = tgUserRepository.findAll();
+                        String string = allUsersString(all);
+                        SendMessage sendMessage = new SendMessage(id, string);
+                        sendMessage.replyMarkup(new ReplyKeyboardRemove());
+                        sendMessage.replyMarkup(getAsosiyMenyu());
+                        telegramBot.execute(sendMessage);
                         return;
                     }
                 }
@@ -195,27 +224,70 @@ public class TelegramService {
                             return;
                         }
                         String caption = update.message().caption();
+                        Document document = update.message().document();
                         Integer messageId = update.message().forwardFromMessageId();
-                        Video video = new Video();
-                        video.setTitle(caption);
-                        video.setChannelId(channelId);
-                        video.setMessageId(messageId);
-                        Category category = categoryRepository.findByTitle(tgUser.getTempCategoryTitle());
-                        video.setCategory(category);
-                        videoRepository.save(video);
-                        SendMessage sendMessage = new SendMessage(
-                                id,
-                                "Video saqlandi, iltimos asosiy menyu tugmasini bosing"
-                        );
-                        sendMessage.replyMarkup(getAsosiyMenyu());
-                        telegramBot.execute(sendMessage);
+                        if (document != null) {
+                            Video video = new Video();
+                            video.setFileName(document.fileName());
+                            video.setTitle(document.fileName());
+                            video.setChannelId(channelId);
+                            video.setMessageId(messageId);
+                            Category category = categoryRepository.findByTitle(tgUser.getTempCategoryTitle());
+                            video.setCategory(category);
+                            videoRepository.save(video);
+                            SendMessage sendMessage = new SendMessage(
+                                    id,
+                                    "Pdf saqlandi tanlang"
+                            );
+                            sendMessage.replyMarkup(getAsosiyMenyu());
+                            telegramBot.execute(sendMessage);
+                        } else {
+                            Video video = new Video();
+                            video.setFileName("");
+                            video.setTitle(caption);
+                            video.setChannelId(channelId);
+                            video.setMessageId(messageId);
+                            Category category = categoryRepository.findByTitle(tgUser.getTempCategoryTitle());
+                            video.setCategory(category);
+                            videoRepository.save(video);
+                            SendMessage sendMessage = new SendMessage(
+                                    id,
+                                    "Video saqlandi tanlang"
+                            );
+                            sendMessage.replyMarkup(getAsosiyMenyu());
+                            telegramBot.execute(sendMessage);
+                        }
                     }
                 }
+
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    private String allUsersString(List<TgUser> all) {
+        StringBuilder stringBuilder = new StringBuilder();
+        int i = 1;
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMMM, yyyy - HH:mm");
+
+        for (TgUser user : all) {
+            stringBuilder.append(i++).append(". ").append(user.getUsername()).append("\n");
+            stringBuilder.append("+").append(user.getPhoneNumber()).append("\n");
+
+            if (user.getCreatedAt() != null) {
+                stringBuilder.append("Ro'yxatdan o'tgan: ").append(user.getCreatedAt().format(formatter)).append("\n");
+            } else {
+                stringBuilder.append("Ro'yxatdan o'tgan: noma'lum\n");
+            }
+
+            stringBuilder.append("=================================\n");
+        }
+
+        return stringBuilder.toString();
+    }
+
 
     private Keyboard createCategoryWithAdminPanelButton() {
         List<Category> categories = categoryRepository.findAll();
@@ -249,7 +321,8 @@ public class TelegramService {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup("");
         replyKeyboardMarkup.addRow(
                 new KeyboardButton("Kitob qo'shish"),
-                new KeyboardButton("Video qo'shish")
+                new KeyboardButton("Video qo'shish"),
+                new KeyboardButton("Userlarni ko'rish")
         );
         return replyKeyboardMarkup;
     }
@@ -257,12 +330,20 @@ public class TelegramService {
     private Keyboard createVideosButton(List<Video> videos) {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup("");
         for (Video video : videos) {
-            replyKeyboardMarkup.addRow(new KeyboardButton(video.getTitle()));
+            if (video.getFileName().endsWith(".pdf")) {
+                replyKeyboardMarkup.addRow(new KeyboardButton(video.getTitle()));
+            }
+        }
+        for (Video video : videos) {
+            if (!video.getFileName().endsWith(".pdf")) {
+                replyKeyboardMarkup.addRow(new KeyboardButton(video.getTitle()));
+            }
         }
         replyKeyboardMarkup.addRow(new KeyboardButton("Orqaga"));
         replyKeyboardMarkup.resizeKeyboard(true);
         return replyKeyboardMarkup;
     }
+
 
     private Keyboard createCategoryButton() {
         List<Category> categories = categoryRepository.findAllByOrderByIdAsc();

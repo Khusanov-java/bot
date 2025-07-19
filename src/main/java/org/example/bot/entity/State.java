@@ -9,5 +9,5 @@ public enum State {
     CHECK_NAME,
     CHECK_PASSWORD,
     ADD_PASSWORD,
-    TOPIC
+    SEND_CONTACT, ADD_VIDEO_OR_MENU, TOPIC
 }

@@ -28,4 +28,7 @@ public class TgUser {
 
     private LocalDateTime createdAt;
 
+
+    private String tempVideoTitle;
+
 }

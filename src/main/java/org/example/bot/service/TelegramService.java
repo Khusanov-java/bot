@@ -33,6 +33,7 @@ public class TelegramService {
     private final CategoryRepository categoryRepository;
     private final VideoRepository videoRepository;
     private final TgUserRepository tgUserRepository;
+    private static Category category;
 
     public void handle(Update update) {
         try {
@@ -74,7 +75,7 @@ public class TelegramService {
                 if (tgUser.getState() == State.CHECK_NAME) {
                     Contact contact = update.message().contact();
                     tgUser.setPhoneNumber(contact.phoneNumber());
-                    if (contact.phoneNumber().equals("998974034224")) {
+                    if (contact.phoneNumber().equals("998974034224")||contact.phoneNumber().equals("909188019")) {
                         SendMessage sendMessage = new SendMessage(
                                 id,
                                 "Asosiy menyu"
@@ -187,7 +188,102 @@ public class TelegramService {
                         sendMessage.replyMarkup(getAsosiyMenyu());
                         telegramBot.execute(sendMessage);
                         return;
+                    } else if (text != null && text.equals("Category nomi o'zgartirish")) {
+                        SendMessage sendMessage = new SendMessage(id, "Tanlang");
+                        sendMessage.replyMarkup(createCategoryButton());
+                        telegramBot.execute(sendMessage);
+                        tgUser.setState(State.CHOOSE_EDITING_CATEGORY);
+                        tgUserRepository.save(tgUser);
+                        return;
+                    } else if (text != null && text.equals("Video nomini o'zgartirish")) {
+                        SendMessage sendMessage = new SendMessage(id, "Kategoriya tanlang");
+                        sendMessage.replyMarkup(createCategoryButton());
+                        telegramBot.execute(sendMessage);
+                        tgUser.setState(State.VIDEO_RENAMING);
+                        tgUserRepository.save(tgUser);
+                        return;
                     }
+
+                }
+
+                if (tgUser.getState() == State.VIDEO_RENAMING) {
+                    Category category = categoryRepository.findByTitle(text);
+                    if (category == null) {
+                        telegramBot.execute(new SendMessage(id, "Kategoriya topilmadi"));
+                        return;
+                    }
+                    tgUser.setTempCategoryTitle(category.getTitle());
+                    tgUser.setState(State.CHOOSE_VIDEO_FOR_RENAME);
+                    tgUserRepository.save(tgUser);
+
+                    List<Video> videos = videoRepository.findByCategory_IdOrderByMessageIdAsc(category.getId());
+                    SendMessage sendMessage = new SendMessage(id, "Nomini o‘zgartirmoqchi bo‘lgan videoni tanlang:");
+                    sendMessage.replyMarkup(createVideosButton(videos));
+                    telegramBot.execute(sendMessage);
+                    return;
+                }
+
+
+                if (tgUser.getState() == State.CHOOSE_VIDEO_FOR_RENAME) {
+                    Video video = videoRepository.findByTitle(text);
+                    if (video == null) {
+                        telegramBot.execute(new SendMessage(id, "Video topilmadi"));
+                        return;
+                    }
+                    tgUser.setTempVideoTitle(video.getTitle());
+                    tgUser.setState(State.INPUT_NEW_VIDEO_TITLE);
+                    tgUserRepository.save(tgUser);
+
+                    SendMessage sendMessage = new SendMessage(id, "Yangi nomni kiriting:");
+                    telegramBot.execute(sendMessage);
+                    return;
+                }
+
+                if (tgUser.getState() == State.INPUT_NEW_VIDEO_TITLE) {
+                    Video video = videoRepository.findByTitle(tgUser.getTempVideoTitle());
+                    if (video == null) {
+                        telegramBot.execute(new SendMessage(id, "Video topilmadi"));
+                        return;
+                    }
+                    video.setTitle(text);
+                    videoRepository.save(video);
+                    telegramBot.execute(
+                            new com.pengrad.telegrambot.request.EditMessageCaption(
+                                    video.getChannelId(),
+                                    video.getMessageId()
+                            ).caption(text)
+                    );
+                    SendMessage sendMessage = new SendMessage(id, "Video nomi va caption yangilandi ✅");
+                    sendMessage.replyMarkup(getAsosiyMenyu());
+                    telegramBot.execute(sendMessage);
+                    tgUser.setState(State.CATEGORY);
+                    tgUserRepository.save(tgUser);
+                    return;
+                }
+
+                if (tgUser.getState() == State.CHOOSE_EDITING_CATEGORY) {
+                    category = categoryRepository.findByTitle(text);
+                    SendMessage sendMessage = new SendMessage(
+                            id,
+                            "Kategoriyaga yangi nom bering"
+                    );
+                    telegramBot.execute(sendMessage);
+                    tgUser.setState(State.SAVE_CATEGORY);
+                    tgUserRepository.save(tgUser);
+                    return;
+                }
+
+                if (tgUser.getState() == State.SAVE_CATEGORY) {
+                    Category category1 = category;
+                    category1.setTitle(text);
+                    categoryRepository.save(category1);
+                    SendMessage sendMessage = new SendMessage(
+                            id,
+                            "O'zgartirildi, asosiy menyu tugmasini bosing"
+                    );
+                    sendMessage.replyMarkup(getAsosiyMenyu());
+                    telegramBot.execute(sendMessage);
+                    return;
                 }
 
                 if (tgUser.getState() == State.ADD_CATEGORY) {
@@ -321,8 +417,14 @@ public class TelegramService {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup("");
         replyKeyboardMarkup.addRow(
                 new KeyboardButton("Kitob qo'shish"),
-                new KeyboardButton("Video qo'shish"),
-                new KeyboardButton("Userlarni ko'rish")
+                new KeyboardButton("Video qo'shish")
+        );
+        replyKeyboardMarkup.addRow(
+                new KeyboardButton("Userlarni ko'rish"),
+                new KeyboardButton("Category nomi o'zgartirish")
+        );
+        replyKeyboardMarkup.addRow(
+                new KeyboardButton("Video nomini o'zgartirish")
         );
         return replyKeyboardMarkup;
     }
